@@ -1,73 +1,42 @@
-# React + TypeScript + Vite
+# E‑Commerce React App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A simple storefront built with React, TypeScript, Vite, React Query, and Redux Toolkit. Browse products from FakeStore API, filter by category, add items to a cart, and simulate checkout with session‑persisted state.
 
-Currently, two official plugins are available:
+## Prerequisites
+- Node.js 20.19+ or 22.12+
+- npm 10+
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Setup
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Run the app
+```bash
+npm run dev
 ```
+The dev server URL is printed in the terminal (default `http://localhost:5173`). 
+
+## Production build
+```bash
+npm run build
+npm run preview   # optional: serve the built app locally
+```
+
+## Features
+- **Product catalog:** Fetches all products via React Query; shows title, price, category, rating, description, and image with a placeholder fallback if the image fails to load.
+- **Category filter:** Dynamically loads categories from FakeStore API and filters products without hardcoding options.
+- **Cart management:** Redux Toolkit stores cart items (add/remove/update quantity) and keeps them in `sessionStorage` for persistence between sessions.
+- **Totals & checkout:** Cart panel shows item counts and total price; checkout clears Redux state and session storage with success feedback.
+- **Add from list:** Every product card provides “Add to Cart” directly on the Home page.
+
+## Project structure
+- `src/pages/Home.tsx`: Product listing, category filter, and cart layout.
+- `src/commponents/ProductCard.tsx`: Product display card with image fallback and add-to-cart.
+- `src/commponents/ShoppingCart.tsx`: Cart UI with quantities, totals, and checkout.
+- `src/store/*`: Redux store, cart slice, and typed hooks.
+- `src/types/types.ts`: Shared product and cart item types.
+
+## Notes
+- Data loads from `https://fakestoreapi.com/`. If any image endpoint 404s, the UI swaps to a placeholder for consistency.
+- The project uses Bootstrap for layout/styling; adjust as needed.
