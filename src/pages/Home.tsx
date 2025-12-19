@@ -15,7 +15,7 @@ const Home = () => {
   }, []);
 
   return (
-    <div>
+    <div className="d-flex flex-wrap gap-4 justify-content-center">
       {products.map((product: Product) => (
         <ProductCard key={product.id} product={product} />
       ))}
