@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Rating } from "@smastrom/react-rating";
 import { useAppDispatch } from "../store/hooks";
 import { addToCart } from "../store/cartSlice";
@@ -6,7 +7,12 @@ import type { Product } from "../types/types";
 
 const FALLBACK_IMAGE = "https://via.placeholder.com/200?text=Image+Unavailable";
 
-const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
+type ProductCardProps = {
+  product: Product;
+  editHref?: string;
+};
+
+const ProductCard: React.FC<ProductCardProps> = ({ product, editHref }) => {
   const dispatch = useAppDispatch();
   const [imageSrc, setImageSrc] = useState(product.image);
   const ratingValue = product.rating?.rate ?? 0;
@@ -34,12 +40,16 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         </span>
         <Rating style={{ maxWidth: 150 }} value={ratingValue} readOnly />
         <p className="card-text small text-muted">{product.description}</p>
-        <button
-          className="btn btn-dark mt-auto"
-          onClick={() => dispatch(addToCart(product))}
-        >
-          Add to Cart
-        </button>
+        <div className="mt-auto d-flex flex-wrap gap-2">
+          <button className="btn btn-dark" onClick={() => dispatch(addToCart(product))}>
+            Add to Cart
+          </button>
+          {editHref && (
+            <Link className="btn btn-outline-secondary" to={editHref}>
+              Edit
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );

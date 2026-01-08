@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   orderBy,
   query,
@@ -83,6 +84,23 @@ export const deleteProduct = async (id: string) => {
   await deleteDoc(doc(productsRef, id));
 };
 
+export const getProduct = async (id: string): Promise<Product | null> => {
+  const snapshot = await getDoc(doc(productsRef, id));
+  if (!snapshot.exists()) {
+    return null;
+  }
+  const data = snapshot.data() as Omit<Product, "id">;
+  return {
+    id: snapshot.id,
+    title: data.title ?? "",
+    price: Number(data.price ?? 0),
+    description: data.description ?? "",
+    category: data.category ?? "",
+    image: data.image ?? "",
+    rating: normalizeRating(data.rating),
+  };
+};
+
 export const createOrder = async (
   userId: string,
   items: CartItem[],
@@ -152,3 +170,36 @@ export const subscribeToOrders = (
       }
     }
   );
+
+export const getOrderById = async (orderId: string): Promise<Order | null> => {
+  const snapshot = await getDoc(doc(ordersRef, orderId));
+  if (!snapshot.exists()) {
+    return null;
+  }
+  const data = snapshot.data() as {
+    userId?: string;
+    userEmail?: string;
+    userName?: string;
+    shippingAddress?: string;
+    items?: CartItem[];
+    total?: number;
+    createdAt?: unknown;
+  };
+  return {
+    id: snapshot.id,
+    userId: data.userId ?? "",
+    userEmail: data.userEmail,
+    userName: data.userName,
+    shippingAddress: data.shippingAddress,
+    items: Array.isArray(data.items)
+      ? data.items.map((item) => ({
+          ...item,
+          id: String(item.id),
+          rating: normalizeRating(item.rating),
+          quantity: Math.max(1, Number(item.quantity) || 1),
+        }))
+      : [],
+    total: Number(data.total ?? 0),
+    createdAt: toDateOrNull(data.createdAt),
+  };
+};
