@@ -11,8 +11,12 @@ const loadCartFromSession = (): CartItem[] => {
     const parsed = JSON.parse(stored) as CartItem[];
     // Ensure quantity is always a positive number
     return parsed
-      .filter((item) => typeof item.id === "number")
-      .map((item) => ({ ...item, quantity: Math.max(1, Number(item.quantity) || 1) }));
+      .filter((item) => typeof item?.id === "string" || typeof item?.id === "number")
+      .map((item) => ({
+        ...item,
+        id: String(item.id),
+        quantity: Math.max(1, Number(item.quantity) || 1),
+      }));
   } catch (error) {
     console.error("Failed to parse cart from sessionStorage", error);
     return [];
@@ -49,11 +53,11 @@ const cartSlice = createSlice({
       }
       persistCart(state.items);
     },
-    removeFromCart: (state, action: PayloadAction<number>) => {
+    removeFromCart: (state, action: PayloadAction<string>) => {
       state.items = state.items.filter((item) => item.id !== action.payload);
       persistCart(state.items);
     },
-    updateQuantity: (state, action: PayloadAction<{ id: number; quantity: number }>) => {
+    updateQuantity: (state, action: PayloadAction<{ id: string; quantity: number }>) => {
       const item = state.items.find((cartItem) => cartItem.id === action.payload.id);
       if (item) {
         item.quantity = Math.max(1, action.payload.quantity);

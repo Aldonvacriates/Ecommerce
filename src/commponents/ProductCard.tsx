@@ -9,6 +9,7 @@ const FALLBACK_IMAGE = "https://via.placeholder.com/200?text=Image+Unavailable";
 const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const dispatch = useAppDispatch();
   const [imageSrc, setImageSrc] = useState(product.image);
+  const ratingValue = product.rating?.rate ?? 0;
 
   const handleImageError = () => {
     if (imageSrc !== FALLBACK_IMAGE) {
@@ -31,7 +32,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         <span className="badge text-bg-secondary align-self-start text-uppercase">
           {product.category}
         </span>
-        <Rating style={{ maxWidth: 150 }} value={product.rating.rate} readOnly />
+        <Rating style={{ maxWidth: 150 }} value={ratingValue} readOnly />
         <p className="card-text small text-muted">{product.description}</p>
         <button
           className="btn btn-dark mt-auto"

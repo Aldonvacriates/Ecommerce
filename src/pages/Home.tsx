@@ -1,52 +1,64 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import ProductCard from "../commponents/ProductCard";
+import ProductManager from "../commponents/ProductManager";
 import ShoppingCart from "../commponents/ShoppingCart";
-import type { Product } from "../types/types";
-
-const fetchProducts = async (category: string): Promise<Product[]> => {
-  const endpoint =
-    category === "all"
-      ? "https://fakestoreapi.com/products"
-      : `https://fakestoreapi.com/products/category/${encodeURIComponent(category)}`;
-
-  const response = await fetch(endpoint);
-  if (!response.ok) {
-    throw new Error("Failed to fetch products");
-  }
-  return response.json();
-};
-
-const fetchCategories = async (): Promise<string[]> => {
-  const response = await fetch("https://fakestoreapi.com/products/categories");
-  if (!response.ok) {
-    throw new Error("Failed to fetch categories");
-  }
-  return response.json();
-};
+import { useAuth } from "../context/AuthContext";
+import { createProduct, deleteProduct, subscribeToProducts, updateProduct } from "../firebase/firestore";
+import type { Product, ProductInput } from "../types/types";
 
 const Home = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const { user } = useAuth();
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const {
-    data: categories,
-    isLoading: categoriesLoading,
-    isError: categoriesError,
-    error: categoriesErrorMessage,
-  } = useQuery({
-    queryKey: ["categories"],
-    queryFn: fetchCategories,
-  });
+  useEffect(() => {
+    setIsLoading(true);
+    const unsubscribe = subscribeToProducts(
+      (items) => {
+        setProducts(items);
+        setErrorMessage(null);
+        setIsLoading(false);
+      },
+      (error) => {
+        setErrorMessage(error.message || "Unable to load products.");
+        setIsLoading(false);
+      }
+    );
 
-  const {
-    data: products,
-    isLoading: productsLoading,
-    isError: productsError,
-    error: productsErrorMessage,
-  } = useQuery<Product[]>({
-    queryKey: ["products", selectedCategory],
-    queryFn: () => fetchProducts(selectedCategory),
-  });
+    return () => unsubscribe();
+  }, []);
+
+  const categories = useMemo(() => {
+    const unique = Array.from(
+      new Set(products.map((product) => product.category).filter(Boolean))
+    );
+    return ["all", ...unique];
+  }, [products]);
+
+  useEffect(() => {
+    if (selectedCategory !== "all" && !categories.includes(selectedCategory)) {
+      setSelectedCategory("all");
+    }
+  }, [categories, selectedCategory]);
+
+  const filteredProducts = useMemo(() => {
+    if (selectedCategory === "all") return products;
+    return products.filter((product) => product.category === selectedCategory);
+  }, [products, selectedCategory]);
+
+  const handleCreateProduct = async (input: ProductInput) => {
+    await createProduct(input);
+  };
+
+  const handleUpdateProduct = async (id: string, input: ProductInput) => {
+    await updateProduct(id, input);
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    await deleteProduct(id);
+  };
 
   return (
     <div className="container py-4">
@@ -64,40 +76,40 @@ const Home = () => {
             className="form-select"
             value={selectedCategory}
             onChange={(event) => setSelectedCategory(event.target.value)}
-            disabled={categoriesLoading}
+            disabled={isLoading}
           >
-            <option value="all">All</option>
-            {categories?.map((category) => (
+            {categories.map((category) => (
               <option key={category} value={category}>
                 {category}
               </option>
             ))}
           </select>
-          {categoriesError && (
-            <p className="text-danger small mt-1">
-              {(categoriesErrorMessage as Error)?.message || "Unable to load categories."}
-            </p>
-          )}
         </div>
       </div>
 
       <div className="row g-4">
         <div className="col-lg-8">
-          {productsLoading && (
+          {isLoading && (
             <div className="d-flex justify-content-center py-5">
               <div className="spinner-border text-primary" role="status" aria-label="Loading" />
             </div>
           )}
 
-          {productsError && (
+          {errorMessage && (
             <div className="alert alert-danger" role="alert">
-              {(productsErrorMessage as Error)?.message || "Unable to load products."}
+              {errorMessage}
             </div>
           )}
 
-          {!productsLoading && !productsError && (
+          {!isLoading && !errorMessage && filteredProducts.length === 0 && (
+            <div className="alert alert-info" role="alert">
+              No products found for this category yet.
+            </div>
+          )}
+
+          {!isLoading && !errorMessage && filteredProducts.length > 0 && (
             <div className="row g-4">
-              {products?.map((product) => (
+              {filteredProducts.map((product) => (
                 <div className="col-md-6" key={product.id}>
                   <ProductCard product={product} />
                 </div>
@@ -106,8 +118,15 @@ const Home = () => {
           )}
         </div>
 
-        <div className="col-lg-4">
+        <div className="col-lg-4 d-flex flex-column gap-4">
           <ShoppingCart />
+          <ProductManager
+            products={products}
+            onCreate={handleCreateProduct}
+            onUpdate={handleUpdateProduct}
+            onDelete={handleDeleteProduct}
+            canManage={Boolean(user)}
+          />
         </div>
       </div>
     </div>

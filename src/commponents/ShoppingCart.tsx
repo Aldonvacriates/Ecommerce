@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { createOrder } from "../firebase/firestore";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { clearCart, removeFromCart, updateQuantity } from "../store/cartSlice";
 
@@ -7,7 +9,10 @@ const FALLBACK_IMAGE = "https://via.placeholder.com/80?text=No+Image";
 const ShoppingCart = () => {
   const { items } = useAppSelector((state) => state.cart);
   const dispatch = useAppDispatch();
+  const { user, profile } = useAuth();
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totals = useMemo(
     () =>
@@ -22,16 +27,36 @@ const ShoppingCart = () => {
     [items]
   );
 
-  const handleQuantityChange = (id: number, value: string) => {
+  const handleQuantityChange = (id: string, value: string) => {
     const parsedQuantity = Math.max(1, Number(value) || 1);
     dispatch(updateQuantity({ id, quantity: parsedQuantity }));
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!items.length) return;
-    dispatch(clearCart());
-    setCheckoutMessage("Checkout successful! Your cart has been cleared.");
-    setTimeout(() => setCheckoutMessage(null), 3000);
+    setCheckoutError(null);
+    setCheckoutMessage(null);
+
+    if (!user) {
+      setCheckoutError("Please sign in to place an order.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await createOrder(user.uid, items, totals.totalPrice, {
+        email: user.email ?? undefined,
+        name: profile?.name,
+        address: profile?.address,
+      });
+      dispatch(clearCart());
+      setCheckoutMessage("Order placed successfully! Your cart has been cleared.");
+      setTimeout(() => setCheckoutMessage(null), 3000);
+    } catch (error) {
+      setCheckoutError((error as Error)?.message || "Checkout failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -49,6 +74,9 @@ const ShoppingCart = () => {
 
         {checkoutMessage && (
           <div className="alert alert-success py-2 mb-0">{checkoutMessage}</div>
+        )}
+        {checkoutError && (
+          <div className="alert alert-danger py-2 mb-0">{checkoutError}</div>
         )}
 
         {items.length === 0 ? (
@@ -99,8 +127,8 @@ const ShoppingCart = () => {
               </div>
             ))}
             <div className="d-grid">
-              <button className="btn btn-success" onClick={handleCheckout}>
-                Checkout
+              <button className="btn btn-success" onClick={handleCheckout} disabled={isSubmitting}>
+                {isSubmitting ? "Placing Order..." : "Checkout"}
               </button>
             </div>
           </div>
